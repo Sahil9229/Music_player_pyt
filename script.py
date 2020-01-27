@@ -10,17 +10,73 @@ import threading
 
 root=Tk()
 mixer.init()   #initialize
+               #root = menubar + leftframe + rightframe + statusbar
 
 menu_bar=Menu(root)
 root.config(menu=menu_bar)
 
-def about_us():
-    tkinter.messagebox.showinfo('About PLAyeR','Music player developed in python')
+root.geometry('600x260')
+root.title("PLAyeR")
+
+status_bar = Label(root,text='Welcome',relief  = SUNKEN, anchor = W) #west sunken border
+status_bar.pack(side = BOTTOM, fill = X)   #pack automatically arranges widgets from top to bpttom in vertical manner
+
+
+leftframe = Frame(root)
+leftframe.pack(side = LEFT,padx = 30)
+
+rightframe = Frame(root)
+rightframe.pack()
+
+topframe = Frame(rightframe)
+topframe.pack()
+
+length_bar=Label(topframe,text = 'length 00:00')
+length_bar.pack(pady = 10)
+current_time_bar=Label(topframe,text = 'time 00:00', relief = GROOVE)
+current_time_bar.pack()
+
+
+mid_frame = Frame(rightframe)  #relief = RAISED borderwidth =1
+mid_frame.pack(padx = 10,pady = 10)
+
+bottom_frame = Frame(rightframe)
+bottom_frame.pack()
+
+
+play_list = Listbox(leftframe)
+#play_list.insert(0,'song1')      #index from 0,(index,element)
+#play_list.insert(0,'song2') 
+play_list.pack() 
 
 def open_file():
     global filename
     filename = filedialog.askopenfilename()
     print(filename)
+    add_to_playlist(filename)
+
+index = 0 
+
+def add_to_playlist(f):
+    global index
+    f = os.path.basename(f)
+    play_list.insert(index,f)
+    index +=1
+
+
+
+
+add_btn = Button(leftframe, text = 'Add', command = open_file)
+add_btn.pack(side = LEFT)
+del_btn = Button(leftframe, text = 'Del')
+del_btn.pack(side = LEFT)
+
+
+
+def about_us():
+    tkinter.messagebox.showinfo('About PLAyeR','Music player developed in python')
+
+
 sub_menubar=Menu(menu_bar,tearoff=0)
 menu_bar.add_cascade(label='File',menu=sub_menubar)
 sub_menubar.add_command(label="Open",command = open_file)
@@ -33,18 +89,15 @@ sub_menubar.add_command(label="About",command=about_us)
 
 
 
-root.geometry('500x260')
-root.title("PLAyeR")
+
 #p1 = PhotoImage(file = 'headphones.png') 
 #root.iconphoto(False, 'headphones.png')
 
 #root.iconbitmap("play(1).png") #rawstring
-text=Label(root,text = 'Play something')
-text.pack()
-length_bar=Label(root,text = 'length 00:00')
-length_bar.pack(pady = 10)
-current_time_bar=Label(root,text = 'time 00:00', relief = GROOVE)
-current_time_bar.pack()
+
+#text=Label(root,text = 'Play something')
+#text.pack()
+
 
 global playing 
 global paused
@@ -52,22 +105,27 @@ paused = False
 playing = False
 
 def start_count(t):
-    while t and mixer.music.get_busy():    #returns false when stop is pressed
-        mins,secs = divmod(t,60)
-        mins = round(mins)
-        secs = round(secs)
-        timeformat = '{:02d}:{:02d}'.format(mins,secs)
-        current_time_bar['text'] = 'time ' + timeformat
-        time.sleep(1) #seconds  
-        print(timeformat)
-        t -= 1
+    global paused
+    global playing
+    current_time = 0
+
+    while  t and mixer.music.get_busy():    #returns false when stop is pressed
+        if playing:
+            mins,secs = divmod(t,60)
+            mins = round(mins)
+            secs = round(secs)
+            timeformat = '{:02d}:{:02d}'.format(mins,secs)
+            current_time_bar['text'] = 'time ' + timeformat
+            time.sleep(1) #seconds  
+            print(timeformat)
+            t -= 1
 
 
 
 
 def show_details():
     global filename
-    text['text'] = os.path.basename(filename)
+    #text['text'] = os.path.basename(filename)
     file_data = os.path.splitext(filename)
     if file_data[1] == '.mp3':
         #mp3
@@ -163,14 +221,15 @@ def mute_music():
         volumebutton.configure(image = mute_photo)
         muted = True
 
-mid_frame = Frame(root)  #relief = RAISED borderwidth =1
-mid_frame.pack(padx = 10,pady = 10)
+
 
 play_photo=PhotoImage(file = 'asset/play.png')
 stop_photo=PhotoImage(file = 'asset/stop.png')
 pause_photo=PhotoImage(file = 'asset/pause.png')
 mute_photo=PhotoImage(file = 'asset/mute24.png')
 volume_photo=PhotoImage(file = 'asset/volume24.png')
+
+
 
 
 #labelphoto = Label(root,image = photo)
@@ -182,18 +241,25 @@ stopbutton = Button(mid_frame,image=stop_photo,command = stop_song)
 stopbutton.grid(row = 0, column = 2, padx = 10)
 pausebutton = Button(mid_frame,image=pause_photo,command = pause_song)
 pausebutton.grid(row = 0, column = 1, padx = 10)
-volumebutton = Button(mid_frame,image=volume_photo, command = mute_music)
+volumebutton = Button(bottom_frame,image=volume_photo, command = mute_music)
 volumebutton.grid(row = 1, column = 0, sticky = 'e', pady = 15)
 
 
 
-scale = Scale(mid_frame,from_ = 0,to = 100,orient = HORIZONTAL,command = set_vol)
+scale = Scale(bottom_frame,from_ = 0,to = 100,orient = HORIZONTAL,command = set_vol)
 scale.set(70)
 scale.grid(row = 1, column = 1,sticky = 'n')  #pack automatically arranges widgets from top to bpttom in vertical manner
 
-status_bar = Label(root,text='Welcome',relief  = SUNKEN, anchor = W) #west sunken border
-status_bar.pack(side = BOTTOM, fill = X)   #pack automatically arranges widgets from top to bpttom in vertical manner
 
+
+def on_Closing():
+    stop_song()
+    root.destroy()
+
+
+
+
+root.protocol("WM_DELETE_WINDOW",on_Closing)  #way of communication
 root.mainloop()
 
 #import tkinter as tk
